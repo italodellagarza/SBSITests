@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 # Created By  : Ítalo Della Garza Silva
-# Created Date: date/month/time
+# Created Date: 05/08/2022
 #
-# test_nenn_xgboost_amlsim.py: Tests for NENN GNN combined with XGBoost
+# test_nenn_xgboost_amlsim.py: Tests for NENN + XGBoost
 #
 
 import os
@@ -13,12 +13,22 @@ import torch
 import scipy
 import xgboost as xgb
 import numpy as np
-from torch_geometric.data import Data
-from model_nenn import Nenn
+from models.model_nenn import Nenn
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def get_confidence_intervals(metric_list, n_repeats):
+    """Function to calculate the confidence intervals with a 95%
+    confidence value.
+
+    :param metric_list: list containing the metrics obtained.
+    :type metric_list: list
+    :param n_repeats: number of experiment repetitions.
+    :type n_repeats: int
+
+    :return: (metric average, confidence interval length)
+    :rtype: (float, float)
+    """
     confidence = 0.95
     t_value = scipy.stats.t.ppf((1 + confidence) / 2.0, df=n_repeats - 1)
     metric_avg = np.mean(metric_list)
@@ -29,17 +39,17 @@ def get_confidence_intervals(metric_list, n_repeats):
     se = np.sqrt((1.0 / (n_repeats - 1)) * se)
     ci_length = t_value * se
 
-    return (metric_avg, ci_length)
+    return metric_avg, ci_length
         
 
-
-
 def main():
+    """Main function"""
     if len(sys.argv) <= 3:
         print('Wrong number of arguments')
         print('You must put the 3 necessary arguments:')
         print()
-        print('$ test_nenn_amlsim.py <dataset_path_name> <number_of_repetitions> <output_name_file>')
+        print('$ test_nenn_xgboost_amlsim.py <dataset_path_name> ' +
+              '<number_of_repetitions> <output_name_file>')
         print()
         sys.exit()
     
@@ -64,7 +74,6 @@ def main():
     f1s_0 = []
     precisions_0= []
     recalls_0 = []
-    
 
     for execution in range(n_repeats):
         print(f'EXECUTION {execution}\n')
@@ -83,10 +92,7 @@ def main():
             weight=torch.Tensor([0.04, 0.96])
 
         loss = torch.nn.CrossEntropyLoss(weight=weight)
-
-
         optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-
 
         # Training the model
         model.train()
@@ -116,7 +122,6 @@ def main():
 
         model.eval()
         with torch.no_grad():
-
             for data in train_data:
                 data.to('cpu')
                 _, embedding_train = model(
@@ -161,7 +166,9 @@ def main():
         # Creating and training the model
 
         print('Training XGBoost...')
-        xgb_model = xgb.XGBClassifier(objective="binary:logistic", random_state=42)
+        xgb_model = xgb.XGBClassifier(
+            objective="binary:logistic", random_state=42
+        )
         xgb_model.fit(embeddings_train, y_train)
 
         # Evaluating the model

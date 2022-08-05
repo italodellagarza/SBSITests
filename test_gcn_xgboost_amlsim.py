@@ -14,12 +14,23 @@ import random
 import numpy as np
 import scipy
 import xgboost as xgb
-from model_gcn import GCN
+from models.model_gcn import GCN
 from torch_geometric.data import Data
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def get_confidence_intervals(metric_list, n_repeats):
+    """Function to calculate the confidence intervals with a 95%
+    confidence value.
+
+    :param metric_list: list containing the metrics obtained.
+    :type metric_list: list
+    :param n_repeats: number of experiment repetitions.
+    :type n_repeats: int
+
+    :return: (metric average, confidence interval length)
+    :rtype: (float, float)
+    """
     confidence = 0.95
     t_value = scipy.stats.t.ppf((1 + confidence) / 2.0, df=n_repeats - 1)
     metric_avg = np.mean(metric_list)
@@ -34,11 +45,13 @@ def get_confidence_intervals(metric_list, n_repeats):
 
 
 def main():
+    """Main function"""
     if len(sys.argv) <= 3:
         print('Wrong number of arguments')
         print('You must put the 3 necessary arguments:')
         print()
-        print('$ test_gcn_amlsim.py <dataset_path_name> <number_of_repetitions> <output_name_file>')
+        print('$ test_gcn_xgboost_amlsim.py <dataset_path_name> ' +
+              '<number_of_repetitions> <output_name_file>')
         print()
         sys.exit()
 
@@ -97,7 +110,9 @@ def main():
             for ts, data in enumerate(train_data):
                 data.to('cpu')
                 optimizer.zero_grad()
-                hidden, logits = model(data.x.T.float(), data.edge_index.T, None)
+                hidden, logits = model(
+                    data.x.T.float(), data.edge_index.T, None
+                )
                 l = loss(logits, data.y.T)
                 l.backward()
                 optimizer.step()
@@ -112,7 +127,9 @@ def main():
 
             for data in train_data:
                 data.to('cpu')
-                embedding_train, _ = model(data.x.T.float(), data.edge_index.T, None)
+                embedding_train, _ = model(
+                    data.x.T.float(), data.edge_index.T, None
+                )
                 embeddings_train += embedding_train.numpy().tolist()
                 y_train += data.y.numpy().tolist()
         model.train()
@@ -129,7 +146,9 @@ def main():
 
             for data in test_data:
                 data.to('cpu')
-                embedding_test, _ = model(data.x.T.float(), data.edge_index.T, None)
+                embedding_test, _ = model(
+                    data.x.T.float(), data.edge_index.T, None
+                )
                 embeddings_test += embedding_test.numpy().tolist()
                 y_true += data.y.numpy().tolist()
         model.train()
@@ -138,9 +157,10 @@ def main():
         y_true = np.array(y_true)
 
         # Creating and training the model
-
         print('Training XGBoost...')
-        xgb_model = xgb.XGBClassifier(objective="binary:logistic", random_state=42)
+        xgb_model = xgb.XGBClassifier(
+            objective="binary:logistic", random_state=42
+        )
         xgb_model.fit(embeddings_train, y_train)
 
         # Evaluating the model

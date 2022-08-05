@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Created By  : Ítalo Della Garza Silva
-# Created Date: date/month/time
+# Created Date: 05/08/2022
 #
 # test_nenn_amlsim.py: Tests for NENN GNN
 #
@@ -10,14 +10,24 @@
 import os
 import sys
 import torch
-import random
 import numpy as np
 import scipy
-from model_nenn import Nenn
+from models.model_nenn import Nenn
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def get_confidence_intervals(metric_list, n_repeats):
+    """Function to calculate the confidence intervals with a 95%
+    confidence value.
+
+    :param metric_list: list containing the metrics obtained.
+    :type metric_list: list
+    :param n_repeats: number of experiment repetitions.
+    :type n_repeats: int
+
+    :return: (metric average, confidence interval length)
+    :rtype: (float, float)
+    """
     confidence = 0.95
     t_value = scipy.stats.t.ppf((1 + confidence) / 2.0, df=n_repeats - 1)
     metric_avg = np.mean(metric_list)
@@ -31,14 +41,14 @@ def get_confidence_intervals(metric_list, n_repeats):
     return metric_avg, ci_length
         
 
-
-
 def main():
+    """Main function"""
     if len(sys.argv) <= 3:
         print('Wrong number of arguments')
         print('You must put the 3 necessary arguments:')
         print()
-        print('$ test_nenn_amlsim.py <dataset_path_name> <number_of_repetitions> <output_name_file>')
+        print('$ test_nenn_amlsim.py <dataset_path_name> ' +
+              '<number_of_repetitions> <output_name_file>')
         print()
         sys.exit()
     
@@ -124,13 +134,24 @@ def main():
                 label_pred = logits.max(1)[1].tolist()
                 label_pred_list += label_pred
                 y_true_list += data.y.tolist()
-        prec_macro = precision_score(y_true_list, label_pred_list, average='macro')
-        rec_macro = recall_score(y_true_list, label_pred_list, average='macro')
+
+        prec_macro = precision_score(
+            y_true_list, label_pred_list, average='macro'
+        )
+        rec_macro = recall_score(
+            y_true_list, label_pred_list, average='macro'
+        )
         f1_macro = f1_score(y_true_list, label_pred_list, average='macro')
 
-        prec_0 = precision_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        rec_0 = recall_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        f1_0 = f1_score(y_true_list, label_pred_list, average='binary', labels=[0])
+        prec_0 = precision_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
+        rec_0 = recall_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
+        f1_0 = f1_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
 
         print(f'\n Precision macro: {prec_macro}')
         print(f'Recall macro: {rec_macro}')

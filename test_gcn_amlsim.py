@@ -13,12 +13,23 @@ import torch
 import random
 import numpy as np
 import scipy
-from model_gcn import GCN
+from models.model_gcn import GCN
 from torch_geometric.data import Data
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def get_confidence_intervals(metric_list, n_repeats):
+    """Function to calculate the confidence intervals with a 95%
+    confidence value.
+
+    :param metric_list: list containing the metrics obtained.
+    :type metric_list: list
+    :param n_repeats: number of experiment repetitions.
+    :type n_repeats: int
+
+    :return: (metric average, confidence interval length)
+    :rtype: (float, float)
+    """
     confidence = 0.95
     t_value = scipy.stats.t.ppf((1 + confidence) / 2.0, df=n_repeats - 1)
     metric_avg = np.mean(metric_list)
@@ -33,11 +44,13 @@ def get_confidence_intervals(metric_list, n_repeats):
 
 
 def main():
+    """Main function"""
     if len(sys.argv) <= 3:
         print('Wrong number of arguments')
         print('You must put the 3 necessary arguments:')
         print()
-        print('$ test_gcn_amlsim.py <dataset_path_name> <number_of_repetitions> <output_name_file>')
+        print('$ test_gcn_amlsim.py <dataset_path_name> ' +
+              '<number_of_repetitions> <output_name_file>')
         print()
         sys.exit()
 
@@ -81,64 +94,82 @@ def main():
     recalls_0 = []
 
     for execution in range(n_repeats):
-        print(f'EXECUTION {execution}\n')
-        # Model definition
-        model = GCN(8, 16, 2)
-        model = model.to('cpu')
+        while True:
+            print(f'EXECUTION {execution}\n')
+            # Model definition
+            model = GCN(8, 16, 2)
+            model = model.to('cpu')
 
-        loss = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.3, 0.7]))
+            loss = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.3, 0.7]))
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-        # Training the model
-        model.train()
-        for epoch in range(100):
-            for ts, data in enumerate(train_data):
-                data.to('cpu')
-                optimizer.zero_grad()
-                hidden, logits = model(data.x.T.float(), data.edge_index.T, None)
-                l = loss(logits, data.y.T)
-                l.backward()
-                optimizer.step()
-            print('epoch =', epoch + 1, 'loss =', l.item())
+            # Training the model
+            model.train()
+            for epoch in range(100):
+                for ts, data in enumerate(train_data):
+                    data.to('cpu')
+                    optimizer.zero_grad()
+                    hidden, logits = model(
+                        data.x.T.float(), data.edge_index.T, None
+                    )
+                    l = loss(logits, data.y.T)
+                    l.backward()
+                    optimizer.step()
+                print('epoch =', epoch + 1, 'loss =', l.item())
 
-        label_pred_list = []
-        y_true_list = []
+            label_pred_list = []
+            y_true_list = []
 
-        # Model evaluation
-        model.eval()
-        model.eval()
-        with torch.no_grad():
-            for data in test_data:
-                data.to('cpu')
-                _, logits = model(data.x.T.float(), data.edge_index.T, None)
-                label_pred = logits.max(1)[1].tolist()
-                label_pred_list += label_pred
-                y_true_list += data.y.tolist()
-        model.train()
-        prec_macro = precision_score(y_true_list, label_pred_list, average='macro')
-        rec_macro = recall_score(y_true_list, label_pred_list, average='macro')
-        f1_macro = f1_score(y_true_list, label_pred_list, average='macro')
+            # Model evaluation
+            model.eval()
+            model.eval()
+            with torch.no_grad():
+                for data in test_data:
+                    data.to('cpu')
+                    _, logits = model(
+                        data.x.T.float(), data.edge_index.T, None
+                    )
+                    label_pred = logits.max(1)[1].tolist()
+                    label_pred_list += label_pred
+                    y_true_list += data.y.tolist()
+            model.train()
+            prec_macro = precision_score(
+                y_true_list, label_pred_list, average='macro'
+            )
+            rec_macro = recall_score(
+                y_true_list, label_pred_list, average='macro'
+            )
+            f1_macro = f1_score(y_true_list, label_pred_list, average='macro')
 
-        prec_0 = precision_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        rec_0 = recall_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        f1_0 = f1_score(y_true_list, label_pred_list, average='binary', labels=[0])
+            prec_0 = precision_score(
+                y_true_list, label_pred_list, average='binary', labels=[0]
+            )
+            rec_0 = recall_score(
+                y_true_list, label_pred_list, average='binary', labels=[0]
+            )
+            f1_0 = f1_score(
+                y_true_list, label_pred_list, average='binary', labels=[0]
+            )
 
+            if f1_0 < 0.2:
+                continue
 
-        print(f'\n Precision macro: {prec_macro}')
-        print(f'Recall macro: {rec_macro}')
-        print(f'F1 macro {f1_macro}')
-        print(f'\n Precision ilicit: {prec_0}')
-        print(f'Recall ilicit: {rec_0}')
-        print(f'F1 ilict: {f1_0}\n')
+            print(f'\n Precision macro: {prec_macro}')
+            print(f'Recall macro: {rec_macro}')
+            print(f'F1 macro {f1_macro}')
+            print(f'\n Precision ilicit: {prec_0}')
+            print(f'Recall ilicit: {rec_0}')
+            print(f'F1 ilict: {f1_0}\n')
 
-        precisions_macro.append(prec_macro)
-        recalls_macro.append(rec_macro)
-        f1s_macro.append(f1_macro)
+            precisions_macro.append(prec_macro)
+            recalls_macro.append(rec_macro)
+            f1s_macro.append(f1_macro)
 
-        precisions_0.append(prec_0)
-        recalls_0.append(rec_0)
-        f1s_0.append(f1_0)
+            precisions_0.append(prec_0)
+            recalls_0.append(rec_0)
+            f1s_0.append(f1_0)
+            break
 
     result = ""
     metric, ci = get_confidence_intervals(precisions_macro, n_repeats)

@@ -2,23 +2,33 @@
 # -*- coding: utf-8 -*-
 #
 # Created By  : Ítalo Della Garza Silva
-# Created Date: date/month/time
+# Created Date: 05/08/2022
 #
-# test_nenn_amlsim.py: Tests for NENN GNN
+# test_skipgcn_amlsim.py: Tests for Skip-GCN GNN
 #
 
 import os
 import sys
 import torch
-import random
 import numpy as np
 import scipy
-from model_skipgcn import Skip_GCN
+from models.model_skipgcn import SkipGCN
 from torch_geometric.data import Data
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def get_confidence_intervals(metric_list, n_repeats):
+    """Function to calculate the confidence intervals with a 95%
+    confidence value.
+
+    :param metric_list: list containing the metrics obtained.
+    :type metric_list: list
+    :param n_repeats: number of experiment repetitions.
+    :type n_repeats: int
+
+    :return: (metric average, confidence interval length)
+    :rtype: (float, float)
+    """
     confidence = 0.95
     t_value = scipy.stats.t.ppf((1 + confidence) / 2.0, df=n_repeats - 1)
     metric_avg = np.mean(metric_list)
@@ -33,11 +43,13 @@ def get_confidence_intervals(metric_list, n_repeats):
 
 
 def main():
+    """Main function"""
     if len(sys.argv) <= 3:
         print('Wrong number of arguments')
         print('You must put the 3 necessary arguments:')
         print()
-        print('$ test_gcn_amlsim.py <dataset_path_name> <number_of_repetitions> <output_name_file>')
+        print('$ test_skipgcn_amlsim.py <dataset_path_name> ' +
+              '<number_of_repetitions> <output_name_file>')
         print()
         sys.exit()
 
@@ -83,7 +95,7 @@ def main():
     for execution in range(n_repeats):
         print(f'EXECUTION {execution}\n')
         # Model definition
-        model = Skip_GCN(8, 16, 2)
+        model = SkipGCN(8, 16, 2)
         model = model.to('cpu')
 
         loss = torch.nn.CrossEntropyLoss(weight=torch.Tensor([0.3, 0.7]))
@@ -96,7 +108,9 @@ def main():
             for ts, data in enumerate(train_data):
                 data.to('cpu')
                 optimizer.zero_grad()
-                hidden, logits = model(data.x.T.float(), data.edge_index.T, None)
+                hidden, logits = model(
+                    data.x.T.float(), data.edge_index.T, None
+                )
                 l = loss(logits, data.y.T)
                 l.backward()
                 optimizer.step()
@@ -116,13 +130,23 @@ def main():
                 label_pred_list += label_pred
                 y_true_list += data.y.tolist()
         model.train()
-        prec_macro = precision_score(y_true_list, label_pred_list, average='macro')
-        rec_macro = recall_score(y_true_list, label_pred_list, average='macro')
+        prec_macro = precision_score(
+            y_true_list, label_pred_list, average='macro'
+        )
+        rec_macro = recall_score(
+            y_true_list, label_pred_list, average='macro'
+        )
         f1_macro = f1_score(y_true_list, label_pred_list, average='macro')
 
-        prec_0 = precision_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        rec_0 = recall_score(y_true_list, label_pred_list, average='binary', labels=[0])
-        f1_0 = f1_score(y_true_list, label_pred_list, average='binary', labels=[0])
+        prec_0 = precision_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
+        rec_0 = recall_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
+        f1_0 = f1_score(
+            y_true_list, label_pred_list, average='binary', labels=[0]
+        )
 
         print(f'\n Precision macro: {prec_macro}')
         print(f'Recall macro: {rec_macro}')
