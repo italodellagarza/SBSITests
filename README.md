@@ -1,5 +1,5 @@
-# ENIAC Tests
-Test codes and data for ENIAC 2022 event paper.
+# SBSI Tests
+Test codes and data for SBSI 2023 event paper.
 
 [![Python Version](https://img.shields.io/badge/python-3.8.10-green)](https://www.python.org/downloads/release/python-3810/)
 [![Virtualenv Version](https://img.shields.io/badge/virtualenv-20.0.17-green)](https://virtualenv.pypa.io/en/20.0.17/user_guide.html)
