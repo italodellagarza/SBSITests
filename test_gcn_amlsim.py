@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 # Created By  : Ítalo Della Garza Silva
-# Created Date: date/month/time
+# Created Date: 02/01/2023
 #
-# test_nenn_amlsim.py: Tests for NENN GNN
+# test_gcn_amlsim.py: Tests for GCN
 #
 
 import os

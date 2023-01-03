@@ -142,13 +142,12 @@ def main():
         # Obtain embeddings to test xgboost
         embeddings_test = []
         y_true = []
-
         model.eval()
         with torch.no_grad():
 
             for data in test_data:
                 data.to('cpu')
-                _, embedding_test = model(
+                logits_test, embedding_test = model(
                     data.x.T.type(torch.FloatTensor),
                     data.edge_attr.T.type(torch.FloatTensor),
                     data.edge_to_edge_adj_matr.T.type(torch.FloatTensor),
